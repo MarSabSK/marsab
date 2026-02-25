@@ -32,13 +32,15 @@ app.set("trust proxy", 1);
 
 app.use(
   session({
+    name: "marsab.sid",
     secret: process.env.SESSION_SECRET || "marsab_secret_key_CHANGE_ME",
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
       httpOnly: true,
-      sameSite: "lax",
-      secure: true, // 🔥 na Renderi MUSÍ byť true
+      sameSite: "none",   // 👈 ZMENIŤ
+      secure: true,       // 👈 ponechať
       maxAge: 1000 * 60 * 60 * 12,
     },
   })
