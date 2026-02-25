@@ -28,6 +28,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // ====== SESSION (bez localStorage) ======
+app.set("trust proxy", 1);
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "marsab_secret_key_CHANGE_ME",
@@ -36,8 +38,8 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-      secure: false, // na Renderi dáme true (HTTPS) + trust proxy
-      maxAge: 1000 * 60 * 60 * 12, // 12h
+      secure: true, // 🔥 na Renderi MUSÍ byť true
+      maxAge: 1000 * 60 * 60 * 12,
     },
   })
 );
