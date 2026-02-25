@@ -24,3 +24,10 @@ async function sendMail({ to, bcc, subject, text, html, attachments = [] }) {
 }
 
 module.exports = { sendMail };
+transporter.verify(function (error, success) {
+  if (error) {
+    console.log("❌ SMTP chyba:", error);
+  } else {
+    console.log("✅ SMTP server pripravený");
+  }
+});
