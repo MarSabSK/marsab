@@ -557,7 +557,9 @@ app.post("/api/admin/blog", requireAuth, blogUpload.single("image"), async (req,
     let imageUrl = "";
 
     if (req.file && req.file.buffer) {
+
       const original = req.file.originalname || "blog-image";
+
       const uploadStream = blogGridFSBucket.openUploadStream(original, {
         contentType: req.file.mimetype || "application/octet-stream",
         metadata: {
@@ -567,12 +569,12 @@ app.post("/api/admin/blog", requireAuth, blogUpload.single("image"), async (req,
 
       uploadStream.end(req.file.buffer);
 
-      const finishedFile = await new Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => {
         uploadStream.on("finish", resolve);
         uploadStream.on("error", reject);
       });
 
-      imageFileId = String(finishedFile._id);
+      imageFileId = String(uploadStream.id);
       imageUrl = `/api/blog/image/${imageFileId}`;
     }
 
