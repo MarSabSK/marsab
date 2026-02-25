@@ -15,6 +15,7 @@
 
     const res = await fetch("/api/auth/login", {
       method: "POST",
+      credentials: "include",   // 🔥 DÔLEŽITÉ
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
     });
@@ -27,13 +28,16 @@
     }
 
     setMsg("✅ Prihlásené.", true);
-    // sem si dáme cieľovú admin stránku
     window.location.href = "admin_index.html";
   }
 
   async function requestReset() {
     setMsg("");
-    const res = await fetch("/api/auth/request-reset", { method: "POST" });
+    const res = await fetch("/api/auth/request-reset", {
+      method: "POST",
+      credentials: "include"   // 🔥 DÔLEŽITÉ
+    });
+
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok || !data.ok) {
@@ -54,7 +58,12 @@
     requestReset();
   });
 
-  // ak už si prihlásený, preskoč login
-  const me = await fetch("/api/auth/me").then(r => r.json()).catch(() => null);
+  // kontrola prihlásenia
+  const me = await fetch("/api/auth/me", {
+    credentials: "include"   // 🔥 DÔLEŽITÉ
+  })
+    .then(r => r.json())
+    .catch(() => null);
+
   if (me && me.admin) window.location.href = "admin_index.html";
 })();
