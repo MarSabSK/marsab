@@ -244,7 +244,7 @@ app.post("/api/auth/reset", async (req, res) => {
 app.post("/api/contact", async (req, res) => {
   try {
     const { email, message } = req.body;
-
+      console.log("CONTACT ENDPOINT HIT");
     if (!email || !message) {
       return res.status(400).json({ error: "Chýbajú údaje" });
     }
