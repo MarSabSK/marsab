@@ -150,7 +150,7 @@ async function loadBlogs() {
         item.className = "blog-item";
 
         item.innerHTML = `
-            ${blog.image ? `<img src="${blog.image}" alt="">` : ""}
+            ${blog.imageUrl ? `<img src="${blog.imageUrl}" alt="">` : ""}
             <div class="blog-title">${blog.title}</div>
         `;
 
@@ -168,7 +168,7 @@ function openArticle(blog) {
 
     article.innerHTML = `
         <h1>${blog.title}</h1>
-        ${blog.image ? `<img src="${blog.image}" alt="">` : ""}
+        ${blog.imageUrl ? `<img src="${blog.imageUrl}" alt="">` : ""}
         <div>${blog.content}</div>
         <br><br>
         <a href="#" onclick="location.reload()">← späť</a>
