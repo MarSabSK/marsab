@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MarSab Admin – Križovatka</title>
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --text:#111;
+      --muted:#666;
+      --line:#e9e9e9;
+      --soft:#fafafa;
+      --shadow: 0 20px 50px rgba(0,0,0,0.08);
+      --radius:16px;
+    }
+
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+    }
+
+    .background-shape{
+      position:fixed;
+      top:-220px;
+      right:-220px;
+      width:620px;
+      height:620px;
+      background:radial-gradient(circle at center, rgba(0,0,0,0.04), rgba(0,0,0,0));
+      border-radius:50%;
+      z-index:-1;
+    }
+
+    .wrap{
+      max-width:980px;
+      margin:0 auto;
+      padding:70px 20px 90px;
+    }
+
+    h1{
+      margin:0 0 10px;
+      font-size:44px;
+      font-weight:600;
+      letter-spacing:-1px;
+    }
+
+    .sub{
+      color:var(--muted);
+      font-size:15px;
+      line-height:1.6;
+      max-width:700px;
+      margin-bottom:28px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:14px;
+    }
+
+    @media (max-width: 900px){
+      h1{ font-size:34px; }
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:white;
+      box-shadow:var(--shadow);
+      padding:18px;
+      cursor:pointer;
+      transition: transform .12s ease, box-shadow .12s ease;
+      min-height:140px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .card:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 28px 70px rgba(0,0,0,0.10);
+    }
+
+    .title{
+      font-size:18px;
+      font-weight:600;
+      letter-spacing:-0.2px;
+    }
+
+    .desc{
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--soft);
+      width:fit-content;
+    }
+
+    .tag.dark{
+      background:#111;
+      color:white;
+      border-color:#111;
+    }
+
+    .footer{
+      margin-top:22px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="background-shape"></div>
+
+  <main class="wrap">
+    <h1>Admin križovatka</h1>
+    <div class="sub">
+      Vyber si, kam chceš ísť. Toto je len rozcestník – bez stresu, bez zbytočných krokov.
+    </div>
+
+    <div class="grid">
+
+      <!-- LISTOBOOK -->
+      <div class="card" onclick="goListobook()">
+        <div>
+          <div class="title">Lištobook – Admin</div>
+          <div class="desc">
+            Otvorí sa externé admin prihlásenie Lištobooku v novej karte.
+          </div>
+        </div>
+        <div class="tag dark">Externé • listobook.sk</div>
+      </div>
+
+      <!-- BLOG -->
+      <div class="card" onclick="location.href='admin_blog.html'">
+        <div>
+          <div class="title">MarSab Blog</div>
+          <div class="desc">
+            Interný blog (lokálne). Zatiaľ jednoduchý koncept, neskôr to rozšírime.
+          </div>
+        </div>
+        <div class="tag">Interné • marSab</div>
+      </div>
+
+      <!-- UCTOVNICTVO -->
+      <div class="card" onclick="location.href='admin_doklady.html'">
+        <div>
+          <div class="title">Účtovníctvo</div>
+          <div class="desc">
+            Mini prehľad dokladov a partnerov (vizuál). Logiku doplníme neskôr.
+          </div>
+        </div>
+        <div class="tag">Interné • marSab</div>
+      </div>
+
+    </div>
+<div class="footer" id="statsBox">
+  Návšteva webu: – <br>
+  Návšteva blogu: –
+</div>
+    <div class="footer">
+      Tip: keď bude všetko hotové, po prihlásení sa budeš vždy vracať sem – aby si mal kontrolu, kam ideš.
+    </div>
+  </main>
+
+  <script>
+    function goListobook(){
+      window.open("https://listobook.sk/admin_login.html", "_blank", "noopener,noreferrer");
+    }
+    fetch("/api/stats")
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("statsBox").innerHTML = `
+      Návšteva webu: ${data.webViews || 0} <br>
+      Návšteva blogu: ${data.blogViews || 0}
+    `;
+  });
+  </script>
+</body>
+</html>

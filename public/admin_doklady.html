@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MarSab Admin – Doklady</title>
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --text:#111;
+      --muted:#666;
+      --line:#e9e9e9;
+      --soft:#fafafa;
+      --shadow: 0 20px 50px rgba(0,0,0,0.08);
+      --radius:16px;
+    }
+
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+    }
+
+    .background-shape{
+      position:fixed;
+      top:-220px;
+      right:-220px;
+      width:620px;
+      height:620px;
+      background:radial-gradient(circle at center, rgba(0,0,0,0.04), rgba(0,0,0,0));
+      border-radius:50%;
+      z-index:-1;
+    }
+
+    .topbar{
+      position:sticky;
+      top:0;
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.85);
+      border-bottom:1px solid var(--line);
+      z-index:10;
+    }
+
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding:14px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+    }
+
+    .brand{ display:flex; flex-direction:column; gap:2px; }
+    .brand .title{ font-size:16px; font-weight:600; letter-spacing:-0.2px; }
+    .brand .subtitle{ font-size:13px; color:var(--muted); }
+
+    .actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+
+    .btn{
+      border:1px solid var(--line);
+      background:white;
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:999px;
+      cursor:pointer;
+      font-size:14px;
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); box-shadow: 0 12px 30px rgba(0,0,0,0.08); }
+    .btn.primary{ background:#111; color:white; border-color:#111; }
+    .btn.danger{ border-color:#ffd7d7; background:#fff5f5; }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      padding:28px 20px 90px;
+    }
+
+    h1{ margin:0; font-size:38px; font-weight:600; letter-spacing:-1px; }
+    @media (max-width: 980px){ h1{ font-size:30px; } }
+
+    .hint{ color:var(--muted); font-size:14px; line-height:1.5; max-width:720px; margin-top:10px; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap:18px;
+      align-items:start;
+      margin-top:18px;
+    }
+    @media (max-width: 980px){ .grid{ grid-template-columns: 1fr; } }
+
+    .card{
+      background:white;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .card-header{
+      padding:16px 18px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .card-title{ font-weight:600; font-size:15px; }
+    .card-sub{ font-size:13px; color:var(--muted); }
+
+    .card-body{ padding:18px; }
+
+    label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+
+    input, select, textarea{
+      width:100%;
+      padding:12px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#fafafa;
+      font-family:inherit;
+      font-size:14px;
+      outline:none;
+      box-sizing:border-box;
+    }
+    input:focus, select:focus, textarea:focus{ background:white; border-color:#999; }
+    textarea{ min-height:90px; resize:vertical; }
+
+    .row{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:14px;
+      align-items:center;
+    }
+
+    .cols{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 700px){ .cols{ grid-template-columns: 1fr; } }
+
+    .mini{ font-size:12px; color:var(--muted); }
+
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+    .tab{
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:white;
+      font-size:13px;
+      cursor:pointer;
+    }
+    .tab.active{ background:#111; color:white; border-color:#111; }
+
+    .list{ margin-top:10px; border-top:1px solid var(--line); }
+    .item{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+      padding:14px 0;
+      border-bottom:1px solid var(--line);
+    }
+    .item-left{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+    .item-title{
+      font-weight:600;
+      font-size:14px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:520px;
+    }
+    .item-meta{ font-size:13px; color:var(--muted); line-height:1.35; }
+    .item-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+
+    .badge{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:white;
+      white-space:nowrap;
+    }
+    .badge.soft{ background: var(--soft); }
+
+    .toast{
+      margin-top:10px;
+      font-size:13px;
+      color:#0f5132;
+      background:#d1e7dd;
+      border:1px solid #badbcc;
+      border-radius:12px;
+      padding:10px 12px;
+      display:none;
+    }
+    .toast.err{
+      color:#842029;
+      background:#f8d7da;
+      border-color:#f5c2c7;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="background-shape"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="title">MarSab Admin</div>
+        <div class="subtitle">Doklady (PDF šanón + odosielanie účtovníčke)</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="button" onclick="location.href='admin_index.html'">← Späť do Admin</button>
+        <button class="btn" id="logoutBtn" type="button">Odhlásiť</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1>Doklady</h1>
+    <div class="hint">
+      Pridaj PDF + názov + poznámku. Vyber mesiac/rok a uvidíš zoznam dokladov.
+      V „Nastaveniach“ je e-mail účtovníčky a text e-mailu. Potom jedným klikom odošleš vybraný mesiac.
+    </div>
+
+    <div class="grid">
+
+      <!-- LEFT: Doklady -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Doklady</div>
+            <div class="card-sub">Uložené PDF podľa mesiaca a roka</div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab active" id="tabDocs" type="button">Doklady</button>
+            <button class="tab" id="tabSettings" type="button">Nastavenia</button>
+          </div>
+        </div>
+
+        <div class="card-body">
+
+          <!-- DOKLADY VIEW -->
+          <div id="viewDocs">
+
+            <div class="cols">
+              <div>
+                <label>Mesiac</label>
+                <select id="monthSelect"></select>
+              </div>
+              <div>
+                <label>Rok</label>
+                <select id="yearSelect"></select>
+              </div>
+            </div>
+
+            <div class="row">
+              <button class="btn" id="refreshBtn" type="button">Načítať</button>
+              <button class="btn primary" id="sendMonthBtn" type="button">Odoslať mesiac účtovníčke</button>
+              <span class="mini" id="sendHint">Najprv nastav e-mail účtovníčky v Nastaveniach.</span>
+            </div>
+
+            <div class="toast" id="toastOk"></div>
+            <div class="toast err" id="toastErr"></div>
+
+            <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--line);">
+              <div class="card-title">Pridať PDF</div>
+              <div class="mini" style="margin-top:6px;">PDF sa uloží k zvolenému mesiacu/roku.</div>
+
+              <div class="cols" style="margin-top:12px;">
+                <div>
+                  <label>Názov dokladu (čo uvidíš v zozname)</label>
+                  <input id="titleInput" type="text" placeholder="napr. Websupport – hosting (02/2026)" />
+                </div>
+                <div>
+                  <label>PDF súbor</label>
+                  <input id="fileInput" type="file" accept="application/pdf" />
+                </div>
+              </div>
+
+              <div style="margin-top:12px;">
+                <label>Poznámka (voliteľné)</label>
+                <textarea id="noteInput" placeholder="napr. doména, hosting, licencia…"></textarea>
+              </div>
+
+              <div class="row">
+                <button class="btn primary" id="uploadBtn" type="button">Uložiť PDF</button>
+                <span class="mini" id="uploadMini">Max veľkosť riešime na serveri (podľa nastavenia).</span>
+              </div>
+            </div>
+
+            <div style="margin-top:18px;">
+              <div class="card-title">Zoznam pre vybraný mesiac</div>
+              <div class="mini" id="listMeta" style="margin-top:6px;">—</div>
+
+              <div class="list" id="docsList"></div>
+            </div>
+          </div>
+
+          <!-- SETTINGS VIEW -->
+          <div id="viewSettings" style="display:none;">
+            <div class="card-title">Nastavenia</div>
+            <div class="mini" style="margin-top:6px;">
+              Tu stačí e-mail účtovníčky a text e-mailu. Nič viac.
+            </div>
+
+            <div style="margin-top:14px;">
+              <label>E-mail účtovníčky</label>
+              <input id="accountantEmail" type="email" placeholder="napr. uctovnicka@firma.sk" />
+            </div>
+
+            <div style="margin-top:12px;">
+              <label>Text e-mailu (bez podpisu)</label>
+              <textarea id="emailTemplate" placeholder="Dobrý deň, v prílohe posielam mesačné doklady..."></textarea>
+            </div>
+
+            <div class="row">
+              <button class="btn primary" id="saveSettingsBtn" type="button">Uložiť nastavenia</button>
+              <span class="mini" id="settingsMini">Uloží sa do databázy (nie do prehliadača).</span>
+            </div>
+
+            <div class="toast" id="toastOk2"></div>
+            <div class="toast err" id="toastErr2"></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- RIGHT: Info panel -->
+      <aside class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Ako to bude fungovať</div>
+            <div class="card-sub">jednoducho, bez zbytočností</div>
+          </div>
+          <span class="badge soft">digitálny šanón</span>
+        </div>
+        <div class="card-body">
+          <div class="mini" style="line-height:1.7;">
+            <strong>1)</strong> Vyberieš mesiac/rok (napr. 02/2026).<br>
+            <strong>2)</strong> Pridáš PDF, názov a poznámku.<br>
+            <strong>3)</strong> V zozname sa objavia doklady pre ten mesiac.<br><br>
+            <strong>Odoslanie:</strong> Klik „Odoslať mesiac účtovníčke“ pošle e-mail s prílohami, ktoré vidíš v zozname (podľa mesiaca/roka).<br><br>
+            <em>Backend doplníme v ďalšom kroku – toto je pripravené, aby sa to len napojilo.</em>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <script src="admin_doklady.js"></script>
+</body>
+</html>

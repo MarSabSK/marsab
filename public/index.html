@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:title" content="MarSab">
+<meta property="og:description" content="Vytvárame priestor tam, kde ešte nebol.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://marsab.sk">
+<meta property="og:image" content="https://marsab.sk/img/og-image.jpg">
+
+<title>MarSab – Marcel Šabla | Digitálne projekty a online priestor</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+
+<meta name="description" content="MarSab je digitálny projekt Marcela Šablu. Tvorba webov, online komunít a zmysluplných digitálnych riešení. Blog o tvorbe a digitálnom priestore.">
+
+<meta name="author" content="Marcel Šabla">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Marcel Šabla",
+  "alternateName": "MarSab",
+  "url": "https://marsab.sk",
+  "email": "info@marsab.sk",
+  "jobTitle": "Digitálny tvorca a vývojár webových projektov",
+  "description": "Zakladateľ projektu MarSab. Tvorí digitálne projekty a online riešenia."
+}
+</script>
+
+<script>
+function acceptCookies() {
+  localStorage.setItem("cookiesAccepted", "true");
+  const bar = document.getElementById("cookieBar");
+  if (bar) bar.style.display = "none";
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  if (!localStorage.getItem("cookiesAccepted")) {
+    const bar = document.getElementById("cookieBar");
+    if (bar) bar.style.display = "flex";
+  }
+});
+</script>
+
+<style>
+
+body {
+    margin: 0;
+    padding-top: 70px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #ffffff;
+    color: #111;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* jemný tvar v pozadí */
+.background-shape {
+    position: fixed;
+    top: -200px;
+    right: -200px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle at center,
+        rgba(0,0,0,0.04),
+        rgba(0,0,0,0));
+    border-radius: 50%;
+    z-index: -1;
+}
+
+/* HERO */
+.hero {
+    padding: 100px 20px 60px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.hero h1 {
+    font-size: 64px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -1px;
+}
+
+.hero p {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #666;
+}
+/* TOP NAV */
+.top-nav {
+    position: fixed;
+    top: 24px;
+    right: 40px;
+    z-index: 2000;
+}
+
+.nav-link {
+    text-decoration: none;
+    font-size: 15px;
+    letter-spacing: 2px;
+    color: #111;
+    font-weight: 600;
+    opacity: 1;
+    position: relative;
+    padding-bottom: 4px;
+}
+
+/* jemná linka pod textom */
+.nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 0%;
+    height: 1px;
+    background: #111;
+    transition: width 0.25s ease;
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+/* SEKCIE */
+.section-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 80px;
+    padding: 60px 20px 120px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.section-visual.reverse {
+    flex-direction: row-reverse;
+}
+
+.section-visual img {
+    width: 520px;
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.06);
+}
+
+.section-text {
+    max-width: 380px;
+    font-size: 18px;
+    color: #555;
+    line-height: 1.6;
+}
+
+/* MOBIL */
+@media (max-width: 900px) {
+
+    .hero h1 {
+        font-size: 42px;
+    }
+
+    .section-visual,
+    .section-visual.reverse {
+        flex-direction: column;
+        gap: 40px;
+        text-align: center;
+    }
+
+    .section-text {
+        max-width: 500px;
+    }
+}
+
+/* OTÁZNIK */
+.help-button {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg,
+        #7aa8ff,
+        #9c8cff,
+        #ffb37a);
+    color: white;
+    font-size: 26px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    z-index: 1000;
+    transition: transform 0.2s ease;
+}
+
+.help-button:hover {
+    transform: scale(1.05);
+}
+
+.help-panel {
+    position: fixed;
+    bottom: 90px;
+    right: 24px;
+    width: 320px;
+    max-width: calc(100% - 40px);
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+    padding: 20px;
+    display: none;
+    z-index: 1000;
+}
+
+.help-panel h3 {
+    margin-top: 0;
+}
+
+.help-panel p {
+    font-size: 14px;
+    color: #555;
+}
+
+@media (max-width: 600px) {
+    .help-button {
+        width: 46px;
+        height: 46px;
+        font-size: 22px;
+        bottom: 18px;
+        right: 18px;
+    }
+}
+/* MARSAB SYMBOL */
+.marsab-symbol {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    width: 42px;
+    opacity: 0.55;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 900;
+}
+
+.marsab-symbol:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+@media (max-width: 600px) {
+    .marsab-symbol {
+        width: 34px;
+        bottom: 18px;
+        left: 18px;
+    }
+}
+/* CONTACT */
+
+.contact-section {
+    padding: 80px 20px 120px;
+    display: flex;
+    justify-content: center;
+}
+
+.contact-box {
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+}
+
+.contact-box h2 {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.contact-box p {
+    color: #666;
+    margin-bottom: 40px;
+}
+
+.contact-box form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.contact-box input,
+.contact-box textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid #e5e5e5;
+    font-size: 15px;
+    font-family: inherit;
+    background: #fafafa;
+}
+
+.contact-box textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.contact-box input:focus,
+.contact-box textarea:focus {
+    outline: none;
+    border-color: #999;
+    background: #fff;
+}
+
+.contact-box button {
+    margin-top: 10px;
+    padding: 14px;
+    border-radius: 999px;
+    border: none;
+    background: #111;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.contact-box button:hover {
+    opacity: 0.85;
+}
+.marsab-symbol {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    width: 42px;
+    opacity: 0.55;
+    cursor: pointer;
+    z-index: 900;
+    transition: opacity 0.3s ease;
+}
+
+.marsab-symbol img {
+    width: 100%;
+    display: block;
+}
+
+.marsab-symbol:hover {
+    opacity: 0.9;
+}
+
+.marsab-initials {
+    position: absolute;
+    bottom: 55px;
+    left: 0;
+    background: white;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #111;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: all 0.25s ease;
+    width: 240px;
+}
+
+.marsab-initials em {
+    color: #666;
+    font-style: italic;
+}
+
+.marsab-initials.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+@media (max-width: 600px) {
+    .top-nav {
+        top: 18px;
+        right: 20px;
+    }
+
+    .nav-link {
+        font-size: 14px;
+        letter-spacing: 1.5px;
+    }
+}
+.marsab-toast {
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    background: linear-gradient(135deg, #7da8ff, #ffb6a3);
+    color: white;
+    padding: 18px 26px;
+    border-radius: 18px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    font-size: 15px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.4s ease;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.marsab-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+.cookie-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;
+  color: white;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 13px;
+  display: none;
+  align-items: center;
+  gap: 14px;
+  z-index: 9999;
+}
+
+.cookie-bar button {
+  background: white;
+  color: #111;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+}
+</style>
+</head>
+
+<body>
+<header class="top-nav">
+    <a href="blog.html" class="nav-link">BLOG</a>
+</header>
+
+<div class="background-shape"></div>
+
+<section class="hero">
+    <h1>MarSab</h1>
+    <p>Vytvárame priestor tam, kde ešte nebol.</p>
+</section>
+
+<section class="section-visual">
+    <img src="img/image1.png" alt="Digitálny priestor MarSab">
+
+    <div class="section-text">
+        MarSab vytvára digitálne projekty a online priestor pre ľudí,
+        ktorí ho doteraz nemali. Jednoducho, pokojne a s dôrazom
+        na zmysluplnosť.
+    </div>
+</section>
+
+<section class="section-visual reverse">
+    <img src="img/image2.png" alt="Atmosféra digitálneho priestoru">
+
+    <div class="section-text">
+        Digitálne projekty nežijú len kódom.
+        Hudba, obraz a komunikácia vznikajú prirodzene,
+        ako súčasť priestoru, ktorý projekt potrebuje,
+        aby mohol žiť.
+    </div>
+</section>
+<section class="contact-section">
+
+    <div class="contact-box">
+        <h2>Máte otázku alebo nápad?</h2>
+
+        <p>
+            Ak cítite, že by sme si mali napísať,
+            môžete tu zanechať správu.
+        </p>
+
+        <form id="contactForm">
+            <input type="email" name="email" placeholder="Váš e-mail" required>
+  
+            <textarea name="message" placeholder="Správa" required></textarea>
+
+            <button type="submit">Odoslať správu</button>
+        </form>
+    </div>
+
+</section>
+
+<div class="help-button" id="helpButton">?</div>
+
+<div class="help-panel" id="helpPanel">
+    <h3>Môžete sa spýtať</h3>
+
+    <p><strong>Čo je MarSab?</strong><br>
+    MarSab je priestor, kde vznikajú digitálne projekty, komunity a myšlienky, ktoré majú čas rásť.</p>
+
+    <p><strong>Je to firma na tvorbu webov?</strong><br>
+    Nie úplne. Weby sú len nástroj. Dôležitý je priestor a ľudia v ňom.</p>
+
+    <p><strong>Dá sa spolupracovať?</strong><br>
+    Občas áno. Skôr prirodzene než plánovane.</p>
+
+    <p><strong>Prečo to existuje?</strong><br>
+    Pretože internet môže byť pokojný.</p>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    // HELP BUTTON
+    const button = document.getElementById("helpButton");
+    const panel = document.getElementById("helpPanel");
+
+    button.addEventListener("click", function () {
+        panel.style.display = panel.style.display === "block" ? "none" : "block";
+    });
+
+    // MARSAB SYMBOL
+    if (marsabSymbol && marsabInitials) {
+      marsabSymbol.addEventListener("click", function (e) {
+        e.stopPropagation();
+        marsabInitials.classList.toggle("open");
+      });
+
+      document.addEventListener("click", function () {
+        marsabInitials.classList.remove("open");
+      });
+    }
+
+    document.addEventListener("click", function () {
+        marsabInitials.classList.remove("open");
+    });
+
+    // CONTACT FORM
+    const contactForm = document.getElementById("contactForm");
+
+    contactForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(contactForm);
+
+        const data = {
+            email: formData.get("email"),
+            message: formData.get("message")
+        };
+
+        try {
+            const res = await fetch("/api/contact", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+            console.log(result);
+
+            if (result.success) {
+
+    const toast = document.getElementById("marsabToast");
+    toast.textContent = "Správa bola odoslaná. Ďakujeme.";
+    toast.classList.add("show");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 3000);
+
+    contactForm.reset();
+
+} else {
+
+    const toast = document.getElementById("marsabToast");
+    toast.textContent = "Nepodarilo sa odoslať správu.";
+    toast.classList.add("show");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 3000);
+}
+
+} catch (err) {
+
+    const toast = document.getElementById("marsabToast");
+    toast.textContent = "Chyba pripojenia.";
+    toast.classList.add("show");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 3000);
+}
+    });
+
+});
+
+// SECRET ADMIN ACCESS
+let adminSequence = "";
+const adminPassword = "admin marsab";
+
+document.addEventListener("keydown", function(e) {
+
+    if (!e.key || typeof e.key !== "string") return;
+
+    adminSequence += e.key.toLowerCase();
+
+    if (adminSequence.length > adminPassword.length) {
+        adminSequence = adminSequence.slice(-adminPassword.length);
+    }
+
+    if (adminSequence === adminPassword) {
+        window.location.href = "admin_login.html";
+    }
+});
+fetch("/api/stats/web", { method: "POST" });
+</script>
+
+<div class="marsab-symbol" id="marsabSymbol">
+    <img src="img/marsab-symbol.png" alt="MarSab symbol">
+
+    <div class="marsab-initials" id="marsabInitials">
+        <strong>MarSab, s. r. o.</strong><br>
+        info@marsab.sk<br><br>
+        <em>tvorca digitálneho priestoru pre komunity</em>
+    </div>
+</div>
+<div id="marsabToast" class="marsab-toast"></div>
+<div id="cookieBar" class="cookie-bar">
+  Tento web používa iba technické cookies (prihlásenie a bezpečnosť).
+  <button onclick="acceptCookies()">Rozumiem</button>
+</div>
+</body>
+</html>

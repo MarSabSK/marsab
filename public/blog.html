@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>MarSab Blog</title>
+
+<style>
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #ffffff;
+    color: #111;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* rovnaké pozadie */
+.background-shape {
+    position: fixed;
+    top: -200px;
+    right: -200px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle at center,
+        rgba(0,0,0,0.04),
+        rgba(0,0,0,0));
+    border-radius: 50%;
+    z-index: -1;
+}
+
+/* SPÄŤ */
+.top-nav {
+    position: fixed;
+    top: 24px;
+    right: 40px;
+    z-index: 2000;
+}
+
+.nav-link {
+    text-decoration: none;
+    font-size: 15px;
+    letter-spacing: 2px;
+    color: #111;
+    font-weight: 600;
+}
+
+/* OBSAH BLOGU */
+
+.blog-container {
+    max-width: 900px;
+    margin: 140px auto 80px;
+    padding: 0 20px;
+}
+
+/* položka článku */
+.blog-item {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 40px;
+    align-items: center;
+    cursor: pointer;
+}
+
+.blog-item img {
+    width: 140px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.blog-title {
+    font-size: 22px;
+    font-weight: 600;
+}
+
+/* ARTICLE PAGE */
+
+.article {
+    max-width: 720px;
+    margin: 140px auto 80px;
+    padding: 0 20px;
+}
+
+.article h1 {
+    font-size: 36px;
+    margin-bottom: 20px;
+}
+
+.article p {
+    font-size: 18px;
+    line-height: 1.7;
+    color: #444;
+}
+
+.article img {
+    width: 100%;
+    border-radius: 12px;
+    margin: 30px 0;
+}
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+
+    .top-nav {
+        top: 18px;
+        right: 20px;
+    }
+
+    .blog-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .blog-item img {
+        width: 100%;
+        height: auto;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<a href="index.html" class="nav-link top-nav">SPÄŤ</a>
+
+<div class="background-shape"></div>
+
+<div class="blog-container">
+
+
+</div>
+
+
+<script>
+
+const container = document.querySelector(".blog-container");
+
+async function loadBlogs() {
+    const res = await fetch("/api/blog");
+    const blogs = await res.json();
+
+    container.innerHTML = "";
+
+    blogs.forEach(blog => {
+        const item = document.createElement("div");
+        item.className = "blog-item";
+
+        item.innerHTML = `
+            ${blog.image ? `<img src="${blog.image}" alt="">` : ""}
+            <div class="blog-title">${blog.title}</div>
+        `;
+
+        item.onclick = () => openArticle(blog);
+
+        container.appendChild(item);
+    });
+}
+
+function openArticle(blog) {
+    container.style.display = "none";
+
+    const article = document.createElement("div");
+    article.className = "article";
+
+    article.innerHTML = `
+        <h1>${blog.title}</h1>
+        ${blog.image ? `<img src="${blog.image}" alt="">` : ""}
+        <div>${blog.content}</div>
+        <br><br>
+        <a href="#" onclick="location.reload()">← späť</a>
+    `;
+
+    document.body.appendChild(article);
+}
+
+loadBlogs();
+fetch("/api/stats/blog", { method: "POST" });
+</script>
+
+</body>
+</html>

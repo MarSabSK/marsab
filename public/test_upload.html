@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Test upload doklad</title>
+</head>
+<body>
+
+<h2>Test – Upload dokladu</h2>
+
+<form id="uploadForm" enctype="multipart/form-data">
+  <div>
+    <label>Mesiac:</label>
+    <input type="number" name="month" value="1" required />
+  </div>
+
+  <div>
+    <label>Rok:</label>
+    <input type="number" name="year" value="2026" required />
+  </div>
+
+  <div>
+    <label>Názov:</label>
+    <input type="text" name="title" />
+  </div>
+
+  <div>
+    <label>Poznámka:</label>
+    <input type="text" name="note" />
+  </div>
+
+  <div>
+    <label>PDF:</label>
+    <input type="file" name="file" accept="application/pdf" required />
+  </div>
+
+  <button type="submit">Nahrať</button>
+</form>
+
+<script>
+  document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+
+    const res = await fetch("/api/admin/doklady/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await res.json();
+    alert(JSON.stringify(data));
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Blog</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+}
+input, button {
+  padding: 10px;
+  margin-bottom: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+#editor {
+  min-height: 200px;
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+.blog-item {
+  border-top: 1px solid #ddd;
+  padding: 10px 0;
+}
+.blog-item h3 {
+  margin: 0 0 5px 0;
+}
+.small {
+  font-size: 13px;
+  color: gray;
+}
+</style>
+</head>
+<body>
+
+<h2>Admin Blog</h2>
+
+<input id="title" placeholder="Nadpis článku">
+<div id="editor" contenteditable="true"></div>
+<input type="file" id="imageInput" accept="image/*">
+<button id="saveBtn">Uložiť článok</button>
+
+<hr>
+
+<h3>Zoznam článkov</h3>
+<div id="blogList"></div>
+
+<script src="admin_blog.js"></script>
+</body>
+</html>
