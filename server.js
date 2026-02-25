@@ -412,9 +412,9 @@ app.get("/api/admin/test-mail", requireAuth, async (req, res) => {
 
     res.json({ ok: true, message: "Test mail odoslaný." });
   } catch (err) {
-    console.error("MAIL ERROR:", err);
-    res.status(500).json({ ok: false, error: "Nepodarilo sa odoslať mail." });
-  }
+      console.error("MAIL ERROR:", err);
+      res.status(500).json({ error: err.message || "Chyba pri odosielaní" });
+    }
 });
 
 // ===== SEND MONTH TO ACCOUNTANT =====
