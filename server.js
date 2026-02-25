@@ -39,7 +39,7 @@ app.use(
     proxy: true,
     cookie: {
       httpOnly: true,
-      sameSite: "lax",   // 👈 TOTO
+      sameSite: "lax",   // 👈 toto musí byť lax
       secure: true,
       maxAge: 1000 * 60 * 60 * 12,
     },
