@@ -1,7 +1,7 @@
 require("dotenv").config();
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
+const fs = require("fs"); // (už ho na blog obrázky nebudeme používať, ale nechávam kvôli ostatnému)
 const crypto = require("crypto");
 const express = require("express");
 const mongoose = require("mongoose");
@@ -9,14 +9,15 @@ const { GridFSBucket } = require("mongodb");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
 
+const { sendMail } = require("./mailer");
+
 const app = express();
 
 const statsSchema = new mongoose.Schema({
   key: { type: String, unique: true },
   webViews: { type: Number, default: 0 },
-  blogViews: { type: Number, default: 0 }
+  blogViews: { type: Number, default: 0 },
 });
-
 const Stats = mongoose.model("Stats", statsSchema);
 
 // ====== BASIC CONFIG ======
@@ -41,7 +42,7 @@ app.use(
   })
 );
 
-// ====== DB ======
+// ====== DB MODELS ======
 const AdminSchema = new mongoose.Schema(
   {
     email: { type: String, unique: true, required: true },
@@ -53,21 +54,29 @@ const AdminSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-const SettingsSchema = new mongoose.Schema({
-  accountantEmail: { type: String, default: "" },
-  emailTemplate: { type: String, default: "" },
-}, { timestamps: true });
 
-const BlogSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  content: { type: String, default: "" },
-  image: { type: String, default: "" },
-}, { timestamps: true });
+const SettingsSchema = new mongoose.Schema(
+  {
+    accountantEmail: { type: String, default: "" },
+    emailTemplate: { type: String, default: "" },
+  },
+  { timestamps: true }
+);
+
+const BlogSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    content: { type: String, default: "" },
+
+    // ✅ NOVÉ: obrázok v GridFS
+    imageFileId: { type: String, default: "" }, // ObjectId ako string
+    imageUrl: { type: String, default: "" },    // napr. /api/blog/image/<id>
+  },
+  { timestamps: true }
+);
 
 const Blog = mongoose.model("Blog", BlogSchema);
-
 const Settings = mongoose.model("Settings", SettingsSchema);
-
 const Admin = mongoose.model("Admin", AdminSchema);
 
 async function ensureAdminExists() {
@@ -75,9 +84,7 @@ async function ensureAdminExists() {
   const initialPassword = process.env.ADMIN_PASSWORD;
 
   if (!email || !initialPassword) {
-    console.log(
-      "⚠️ ADMIN_EMAIL alebo ADMIN_PASSWORD nie je v .env. Admin sa nevytvoril automaticky."
-    );
+    console.log("⚠️ ADMIN_EMAIL alebo ADMIN_PASSWORD nie je v .env. Admin sa nevytvoril automaticky.");
     return;
   }
 
@@ -94,45 +101,23 @@ function requireAuth(req, res, next) {
   if (req.session && req.session.admin === true) return next();
   return res.status(401).json({ ok: false, error: "Neprihlásený." });
 }
-// ====== MULTER (PDF upload do pamäte) ======
+
+// ====== MULTER (memory) ======
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // max 10MB
 });
-// ====== ZOZNAM DOKLADOV ======
-app.get("/api/admin/docs", requireAuth, async (req, res) => {
-  try {
-    const month = Number(req.query.month);
-    const year = Number(req.query.year);
 
-    if (!month || !year) {
-      return res.status(400).json({ ok: false, error: "Chýba mesiac alebo rok." });
-    }
-
-    const files = await mongoose.connection.db
-      .collection("doklady.files")
-      .find({
-        "metadata.month": month,
-        "metadata.year": year,
-      })
-      .sort({ uploadDate: -1 })
-      .toArray();
-
-    const result = files.map(f => ({
-      id: String(f._id),
-      filename: f.filename,
-      title: f.metadata?.title || "",
-      note: f.metadata?.note || "",
-      uploadedAt: f.uploadDate,
-    }));
-
-    res.json({ ok: true, items: result });
-
-  } catch (e) {
-    console.error("LIST ERROR:", e);
-    res.status(500).json({ ok: false, error: "Chyba servera." });
-  }
+// ✅ blog upload tiež do pamäte (už nie disk)
+const blogUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // pokojne zvýšime neskôr
 });
+
+// ====== GRIDFS BUCKETS ======
+let gridFSBucket;     // doklady
+let blogGridFSBucket; // blog obrázky
+
 // ====== ROUTES ======
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
@@ -163,32 +148,28 @@ app.post("/api/auth/login", async (req, res) => {
     return res.status(500).json({ ok: false, error: "Chyba servera." });
   }
 });
-app.post("/api/stats/:type", async (req, res) => {
-  const type = req.params.type;
-
-  const update = {};
-
-  if (type === "web") update.$inc = { webViews: 1 };
-  if (type === "blog") update.$inc = { blogViews: 1 };
-
-  if (!update.$inc) return res.json({ ok: false });
-
-  await Stats.findOneAndUpdate(
-    { key: "global" },
-    update,
-    { upsert: true, returnDocument: "after" }
-  );
-
-  res.json({ ok: true });
-});
-app.get("/api/stats", async (req, res) => {
-  const stats = await Stats.findOne({ key: "global" });
-  res.json(stats || { webViews: 0, blogViews: 0 });
-});
 
 // LOGOUT
 app.post("/api/auth/logout", (req, res) => {
   req.session.destroy(() => res.json({ ok: true }));
+});
+
+// STATS
+app.post("/api/stats/:type", async (req, res) => {
+  const type = req.params.type;
+
+  const update = {};
+  if (type === "web") update.$inc = { webViews: 1 };
+  if (type === "blog") update.$inc = { blogViews: 1 };
+  if (!update.$inc) return res.json({ ok: false });
+
+  await Stats.findOneAndUpdate({ key: "global" }, update, { upsert: true, returnDocument: "after" });
+  res.json({ ok: true });
+});
+
+app.get("/api/stats", async (req, res) => {
+  const stats = await Stats.findOne({ key: "global" });
+  res.json(stats || { webViews: 0, blogViews: 0 });
 });
 
 // REQUEST RESET (email link) — zatiaľ link vypíšeme do konzoly
@@ -200,7 +181,6 @@ app.post("/api/auth/request-reset", async (req, res) => {
     const admin = await Admin.findOne({ email });
     if (!admin) return res.status(500).json({ ok: false, error: "Admin účet neexistuje v DB." });
 
-    // token + hash do DB
     const token = crypto.randomBytes(32).toString("hex");
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
@@ -212,8 +192,6 @@ app.post("/api/auth/request-reset", async (req, res) => {
     const link = `${baseUrl}/admin_reset.html?token=${token}`;
 
     console.log("🔐 RESET LINK (do mailu):", link);
-    // neskôr sem doplníme reálne odoslanie emailu (nodemailer)
-
     return res.json({ ok: true, message: "Reset link bol vytvorený (pozri konzolu servera)." });
   } catch (e) {
     console.error("REQUEST RESET ERROR:", e);
@@ -257,6 +235,8 @@ app.post("/api/auth/reset", async (req, res) => {
     return res.status(500).json({ ok: false, error: "Chyba servera." });
   }
 });
+
+// CONTACT
 app.post("/api/contact", async (req, res) => {
   try {
     const { email, message } = req.body;
@@ -269,107 +249,106 @@ app.post("/api/contact", async (req, res) => {
     await sendMail({
       to: "info@marsab.sk",
       subject: "Nová správa z marsab.sk",
-      text: `
-Nová správa z formulára:
-
-Od: ${email}
-
-Správa:
-${message}
-      `
+      text: `Nová správa z formulára:\n\nOd: ${email}\n\nSpráva:\n${message}`,
     });
 
     // 2️⃣ Automatická odpoveď zákazníkovi
     await sendMail({
-  to: email,
-  subject: "MarSab – správa prijatá",
-  text: `
-Dobrý deň,
-
-ďakujeme za Vašu správu.
-Odpovieme Vám čo najskôr.
-
-Marcel Šabla
-MarSab, s.r.o
-info@marsab.sk
-`,
-  html: `
-    <p>Dobrý deň,</p>
-    <p>ďakujeme za Vašu správu.</p>
-    <p><strong>Odpovieme Vám čo najskôr.</strong></p>
-    <br>
-    <p>Marcel Šabla<br>MarSab, s.r.o<br>info@marsab.sk</p>
-  `
-});
+      to: email,
+      subject: "MarSab – správa prijatá",
+      text: `Dobrý deň,\n\nďakujeme za Vašu správu.\nOdpovieme Vám čo najskôr.\n\nMarcel Šabla\nMarSab, s.r.o\ninfo@marsab.sk`,
+      html: `
+        <p>Dobrý deň,</p>
+        <p>ďakujeme za Vašu správu.</p>
+        <p><strong>Odpovieme Vám čo najskôr.</strong></p>
+        <br>
+        <p>Marcel Šabla<br>MarSab, s.r.o<br>info@marsab.sk</p>
+      `,
+    });
 
     res.json({ success: true });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Chyba pri odosielaní" });
   }
 });
-// príklad chráneného endpointu (neskôr použijeme pri admin API)
+
+// príklad chráneného endpointu
 app.get("/api/admin/secret", requireAuth, (req, res) => {
   res.json({ ok: true, data: "tajné dáta" });
 });
-let gridFSBucket;
-// ====== UPLOAD DOKLADU ======
-app.post(
-  "/api/admin/docs",
-  requireAuth,
-  upload.single("file"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ ok: false, error: "Chýba PDF súbor." });
-      }
 
-      const { month, year, title, note } = req.body;
+// ====== DOKLADY ======
 
-      if (!month || !year) {
-        return res.status(400).json({ ok: false, error: "Chýba mesiac alebo rok." });
-      }
+// ZOZNAM DOKLADOV
+app.get("/api/admin/docs", requireAuth, async (req, res) => {
+  try {
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
 
-      const uploadStream = gridFSBucket.openUploadStream(req.file.originalname, {
-        metadata: {
-          month: Number(month),
-          year: Number(year),
-          title: title || "",
-          note: note || "",
-          uploadedAt: new Date(),
-        },
-        contentType: req.file.mimetype,
-      });
-
-      uploadStream.end(req.file.buffer);
-
-      uploadStream.on("finish", () => {
-        return res.json({ ok: true });
-      });
-
-      uploadStream.on("error", (err) => {
-        console.error("GRIDFS UPLOAD ERROR:", err);
-        return res.status(500).json({ ok: false, error: "Chyba pri ukladaní." });
-      });
-    } catch (e) {
-      console.error("UPLOAD ERROR:", e);
-      return res.status(500).json({ ok: false, error: "Chyba servera." });
+    if (!month || !year) {
+      return res.status(400).json({ ok: false, error: "Chýba mesiac alebo rok." });
     }
+
+    const files = await mongoose.connection.db
+      .collection("doklady.files")
+      .find({ "metadata.month": month, "metadata.year": year })
+      .sort({ uploadDate: -1 })
+      .toArray();
+
+    const result = files.map((f) => ({
+      id: String(f._id),
+      filename: f.filename,
+      title: f.metadata?.title || "",
+      note: f.metadata?.note || "",
+      uploadedAt: f.uploadDate,
+    }));
+
+    res.json({ ok: true, items: result });
+  } catch (e) {
+    console.error("LIST ERROR:", e);
+    res.status(500).json({ ok: false, error: "Chyba servera." });
   }
-);
-const blogUpload = multer({
-  storage: multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, "public/uploads/blog");
-    },
-    filename: function (req, file, cb) {
-      const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      cb(null, unique + path.extname(file.originalname));
-    }
-  }),
 });
-// ===== DOWNLOAD DOKLADU =====
+
+// UPLOAD DOKLADU
+app.post("/api/admin/docs", requireAuth, upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: "Chýba PDF súbor." });
+    }
+
+    const { month, year, title, note } = req.body;
+
+    if (!month || !year) {
+      return res.status(400).json({ ok: false, error: "Chýba mesiac alebo rok." });
+    }
+
+    const uploadStream = gridFSBucket.openUploadStream(req.file.originalname, {
+      metadata: {
+        month: Number(month),
+        year: Number(year),
+        title: title || "",
+        note: note || "",
+        uploadedAt: new Date(),
+      },
+      contentType: req.file.mimetype,
+    });
+
+    uploadStream.end(req.file.buffer);
+
+    uploadStream.on("finish", () => res.json({ ok: true }));
+    uploadStream.on("error", (err) => {
+      console.error("GRIDFS UPLOAD ERROR:", err);
+      res.status(500).json({ ok: false, error: "Chyba pri ukladaní." });
+    });
+  } catch (e) {
+    console.error("UPLOAD ERROR:", e);
+    res.status(500).json({ ok: false, error: "Chyba servera." });
+  }
+});
+
+// DOWNLOAD DOKLADU
 app.get("/api/admin/docs/:id/download", requireAuth, async (req, res) => {
   try {
     const { ObjectId } = require("mongodb");
@@ -380,11 +359,7 @@ app.get("/api/admin/docs/:id/download", requireAuth, async (req, res) => {
 
     const fileId = new ObjectId(req.params.id);
 
-    const files = await mongoose.connection.db
-      .collection("doklady.files")
-      .find({ _id: fileId })
-      .toArray();
-
+    const files = await mongoose.connection.db.collection("doklady.files").find({ _id: fileId }).toArray();
     if (!files || files.length === 0) {
       return res.status(404).json({ ok: false, error: "Súbor nenájdený." });
     }
@@ -396,13 +371,13 @@ app.get("/api/admin/docs/:id/download", requireAuth, async (req, res) => {
 
     const downloadStream = gridFSBucket.openDownloadStream(fileId);
     downloadStream.pipe(res);
-
   } catch (e) {
     console.error("DOWNLOAD ERROR:", e);
     res.status(500).json({ ok: false, error: "Chyba servera." });
   }
 });
-// ===== DELETE DOKLADU =====
+
+// DELETE DOKLADU
 app.delete("/api/admin/docs/:id", requireAuth, async (req, res) => {
   try {
     const { ObjectId } = require("mongodb");
@@ -412,17 +387,14 @@ app.delete("/api/admin/docs/:id", requireAuth, async (req, res) => {
     }
 
     const fileId = new ObjectId(req.params.id);
-
     await gridFSBucket.delete(fileId);
 
     res.json({ ok: true });
-
   } catch (e) {
     console.error("DELETE ERROR:", e);
     res.status(500).json({ ok: false, error: "Chyba pri mazaní." });
   }
 });
-const { sendMail } = require("./mailer");
 
 // ===== TEST MAIL =====
 app.get("/api/admin/test-mail", requireAuth, async (req, res) => {
@@ -440,6 +412,7 @@ app.get("/api/admin/test-mail", requireAuth, async (req, res) => {
     res.status(500).json({ ok: false, error: "Nepodarilo sa odoslať mail." });
   }
 });
+
 // ===== SEND MONTH TO ACCOUNTANT =====
 app.post("/api/admin/send-month", requireAuth, async (req, res) => {
   try {
@@ -449,24 +422,24 @@ app.post("/api/admin/send-month", requireAuth, async (req, res) => {
       return res.status(400).json({ ok: false, error: "Chýba mesiac alebo rok." });
     }
 
-    // 1️⃣ načítaj nastavenia z DB (ak zatiaľ nemáš model, pošleme na info@marsab.sk)
-    const accountantEmail = process.env.SMTP_USER; // dočasne
-    const emailTemplate = `Dobrý deň,\n\nv prílohe posielam doklady za ${month}/${year}.\n\nMarSab`;
+    // načítaj nastavenia z DB
+    let settings = await Settings.findOne();
+    if (!settings) settings = await Settings.create({});
 
-    // 2️⃣ nájdi súbory
+    const accountantEmail = settings.accountantEmail || process.env.SMTP_USER; // fallback
+    const emailTemplate =
+      settings.emailTemplate ||
+      `Dobrý deň,\n\nv prílohe posielam doklady za ${month}/${year}.\n\nMarSab`;
+
     const files = await mongoose.connection.db
       .collection("doklady.files")
-      .find({
-        "metadata.month": Number(month),
-        "metadata.year": Number(year),
-      })
+      .find({ "metadata.month": Number(month), "metadata.year": Number(year) })
       .toArray();
 
     if (!files.length) {
       return res.status(400).json({ ok: false, error: "Žiadne doklady pre tento mesiac." });
     }
 
-    // 3️⃣ načítaj každý súbor ako buffer
     const attachments = [];
 
     for (const file of files) {
@@ -474,7 +447,7 @@ app.post("/api/admin/send-month", requireAuth, async (req, res) => {
       const downloadStream = gridFSBucket.openDownloadStream(file._id);
 
       await new Promise((resolve, reject) => {
-        downloadStream.on("data", chunk => chunks.push(chunk));
+        downloadStream.on("data", (chunk) => chunks.push(chunk));
         downloadStream.on("end", resolve);
         downloadStream.on("error", reject);
       });
@@ -486,79 +459,128 @@ app.post("/api/admin/send-month", requireAuth, async (req, res) => {
       });
     }
 
-    // 4️⃣ pošli mail
     await sendMail({
       to: accountantEmail,
-      bcc: process.env.SMTP_USER, // kópia tebe
+      bcc: process.env.SMTP_USER,
       subject: `Doklady ${month}/${year}`,
       text: emailTemplate,
-      html: `<p>${emailTemplate.replace(/\n/g, "<br>")}</p>`,
+      html: `<p>${String(emailTemplate).replace(/\n/g, "<br>")}</p>`,
       attachments,
     });
 
     res.json({ ok: true });
-
   } catch (err) {
     console.error("SEND MONTH ERROR:", err);
     res.status(500).json({ ok: false, error: "Chyba pri odosielaní." });
   }
 });
-// ===== SETTINGS =====
 
-// GET settings
+// ===== SETTINGS =====
 app.get("/api/admin/settings", requireAuth, async (req, res) => {
   try {
     let settings = await Settings.findOne();
-
-    if (!settings) {
-      settings = await Settings.create({});
-    }
+    if (!settings) settings = await Settings.create({});
 
     res.json({
       accountantEmail: settings.accountantEmail,
       emailTemplate: settings.emailTemplate,
     });
-
   } catch (e) {
     console.error("GET SETTINGS ERROR:", e);
     res.status(500).json({ ok: false });
   }
 });
 
-// PUT settings
 app.put("/api/admin/settings", requireAuth, async (req, res) => {
   try {
     const { accountantEmail, emailTemplate } = req.body;
 
     let settings = await Settings.findOne();
-
-    if (!settings) {
-      settings = await Settings.create({});
-    }
+    if (!settings) settings = await Settings.create({});
 
     settings.accountantEmail = accountantEmail || "";
     settings.emailTemplate = emailTemplate || "";
-
     await settings.save();
 
     res.json({ ok: true });
-
   } catch (e) {
     console.error("PUT SETTINGS ERROR:", e);
     res.status(500).json({ ok: false });
   }
 });
-// ===== BLOG =====
 
-// create
+// ===== BLOG (GridFS) =====
+
+// ✅ serve blog image from GridFS
+app.get("/api/blog/image/:id", async (req, res) => {
+  try {
+    const { ObjectId } = require("mongodb");
+    const id = req.params.id;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send("Neplatné ID obrázka.");
+    }
+
+    const fileId = new ObjectId(id);
+
+    const files = await mongoose.connection.db
+      .collection("blog.files")
+      .find({ _id: fileId })
+      .toArray();
+
+    if (!files || files.length === 0) {
+      return res.status(404).send("Obrázok nenájdený.");
+    }
+
+    const file = files[0];
+    res.set("Content-Type", file.contentType || "application/octet-stream");
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+
+    const downloadStream = blogGridFSBucket.openDownloadStream(fileId);
+    downloadStream.on("error", (e) => {
+      console.error("BLOG IMAGE STREAM ERROR:", e);
+      res.status(500).end();
+    });
+    downloadStream.pipe(res);
+  } catch (e) {
+    console.error("BLOG IMAGE GET ERROR:", e);
+    res.status(500).end();
+  }
+});
+
+// create blog post (+ optional image)
 app.post("/api/admin/blog", requireAuth, blogUpload.single("image"), async (req, res) => {
   try {
     const { title, content } = req.body;
 
+    let imageFileId = "";
+    let imageUrl = "";
+
+    if (req.file && req.file.buffer) {
+      const original = req.file.originalname || "blog-image";
+      const uploadStream = blogGridFSBucket.openUploadStream(original, {
+        contentType: req.file.mimetype || "application/octet-stream",
+        metadata: {
+          uploadedAt: new Date(),
+        },
+      });
+
+      uploadStream.end(req.file.buffer);
+
+      const finishedFile = await new Promise((resolve, reject) => {
+        uploadStream.on("finish", resolve);
+        uploadStream.on("error", reject);
+      });
+
+      imageFileId = String(finishedFile._id);
+      imageUrl = `/api/blog/image/${imageFileId}`;
+    }
+
     const blog = await Blog.create({
       title,
       content,
-      image: req.file ? "/uploads/blog/" + req.file.filename : ""
+      imageFileId,
+      imageUrl,
     });
 
     res.json({ ok: true, blog });
@@ -568,39 +590,39 @@ app.post("/api/admin/blog", requireAuth, blogUpload.single("image"), async (req,
   }
 });
 
-// list
+// list blog posts (public)
 app.get("/api/blog", async (req, res) => {
   const blogs = await Blog.find().sort({ createdAt: -1 });
   res.json(blogs);
 });
 
-// delete
+// delete blog post (+ delete image from GridFS)
 app.delete("/api/admin/blog/:id", requireAuth, async (req, res) => {
   try {
+    const { ObjectId } = require("mongodb");
+
     const blog = await Blog.findById(req.params.id);
     if (!blog) {
       return res.status(404).json({ ok: false, error: "Blog neexistuje." });
     }
 
-    // ak má blog obrázok
-    if (blog.image) {
-      const imagePath = path.join(__dirname, "public", blog.image);
-
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-        console.log("🗑 Obrázok zmazaný:", imagePath);
+    if (blog.imageFileId && ObjectId.isValid(blog.imageFileId)) {
+      try {
+        await blogGridFSBucket.delete(new ObjectId(blog.imageFileId));
+      } catch (e) {
+        console.error("BLOG IMAGE DELETE ERROR:", e);
+        // necháme pokračovať – blog sa aj tak zmaže
       }
     }
 
     await Blog.findByIdAndDelete(req.params.id);
-
     res.json({ ok: true });
-
   } catch (err) {
     console.error("DELETE BLOG ERROR:", err);
     res.status(500).json({ ok: false, error: "Chyba pri mazaní." });
   }
 });
+
 // ====== START ======
 const PORT = process.env.PORT || 3000;
 
@@ -609,15 +631,18 @@ mongoose
   .then(async () => {
     console.log("✅ MongoDB pripojené");
 
-    // ===== GRIDFS INIT =====
-    gridFSBucket = new GridFSBucket(mongoose.connection.db, {
-      bucketName: "doklady",
-    });
+    // doklady bucket
+    gridFSBucket = new GridFSBucket(mongoose.connection.db, { bucketName: "doklady" });
     console.log("📂 GridFS bucket pripravený (doklady)");
+
+    // ✅ blog bucket
+    blogGridFSBucket = new GridFSBucket(mongoose.connection.db, { bucketName: "blog" });
+    console.log("🖼️ GridFS bucket pripravený (blog)");
 
     await ensureAdminExists();
 
-    app.listen(PORT, () =>
-      console.log(`Server beží na http://localhost:${PORT}`)
-    );
+    app.listen(PORT, () => console.log(`Server beží na http://localhost:${PORT}`));
   })
+  .catch((e) => {
+    console.error("MONGO CONNECT ERROR:", e);
+  });

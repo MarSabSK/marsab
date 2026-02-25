@@ -19,6 +19,7 @@
       div.innerHTML = `
         <h3>${blog.title}</h3>
         <div class="small">${new Date(blog.createdAt).toLocaleString("sk-SK")}</div>
+        ${blog.imageUrl ? `<img src="${blog.imageUrl}" style="max-width:200px; display:block; margin:10px 0;">` : ""}
         <button data-id="${blog._id}">Vymazať</button>
       `;
 
