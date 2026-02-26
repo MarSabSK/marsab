@@ -234,11 +234,20 @@
     if (!file) {
       showToast(toastErr, "Vyber PDF súbor.", true);
       return;
-    }
-    if (file.type !== "application/pdf") {
-      showToast(toastErr, "Súbor musí byť PDF.", true);
-      return;
-    }
+      }
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.ms-excel", // .xls
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+      "application/msword", // .doc
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+      "text/csv"
+    ];
+
+if (!allowedTypes.includes(file.type)) {
+  showToast(toastErr, "Povolené sú iba PDF, XLS, XLSX, DOC, DOCX alebo CSV.", true);
+  return;
+}
 
     const fd = new FormData();
     fd.append("file", file);
@@ -257,7 +266,7 @@
     }).catch(() => null);
 
     uploadBtn.disabled = false;
-    uploadBtn.textContent = "Uložiť PDF";
+    uploadBtn.textContent = "Uložiť dokument";
 
     if (!res || !res.ok) {
       showToast(toastErr, "Upload zlyhal (backend ešte doplníme / alebo chyba servera).", true);
@@ -268,7 +277,7 @@
     noteInput.value = "";
     fileInput.value = "";
 
-    showToast(toastOk, "PDF uložené.");
+    showToast(toastOk, "Dokument uložený.");
     loadDocs();
   }
 
